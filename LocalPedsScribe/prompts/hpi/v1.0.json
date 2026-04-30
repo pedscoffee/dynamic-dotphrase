@@ -1,0 +1,12 @@
+{
+  "id": "hpi",
+  "version": "1.0",
+  "name": "History of Present Illness (HPI)",
+  "description": "Generates a chronological History of Present Illness from the transcript.",
+  "category": "clinical_note",
+  "default_input": "cleaned_transcript",
+  "system_prompt": "You are an expert pediatric clinician. Generate a concise, formal History of Present Illness (HPI) based on the provided transcript. Focus on chronological narrative, pertinent positives and negatives, and relevant context.",
+  "user_prompt_template": "{{input}}",
+  "created_at": "2026-04-27T23:18:11.964843+00:00",
+  "updated_at": "2026-04-27T23:18:11.964843+00:00"
+}

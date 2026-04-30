@@ -1,0 +1,74 @@
+[
+    {
+        "id": "default",
+        "name": "Default Workflow",
+        "steps": [
+            {
+                "prompt_id": "transcript_cleanup",
+                "version": "1.0",
+                "auto_run": true,
+                "input_source": "raw_transcript"
+            },
+            {
+                "prompt_id": "assessment_plan",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            },
+            {
+                "prompt_id": "hpi",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            },
+            {
+                "prompt_id": "billing_attempt",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            },
+            {
+                "prompt_id": "after_visit_summary",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            },
+            {
+                "prompt_id": "shift_handoff",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            },
+            {
+                "prompt_id": "teaching",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            }
+        ]
+    },
+    {
+        "id": "test_1",
+        "name": "Test 1",
+        "steps": [
+            {
+                "prompt_id": "transcript_cleanup",
+                "version": "1.0",
+                "auto_run": true,
+                "input_source": "raw_transcript"
+            },
+            {
+                "prompt_id": "assessment_plan",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            },
+            {
+                "prompt_id": "shift_handoff",
+                "version": "1.0",
+                "auto_run": false,
+                "input_source": "cleaned_transcript"
+            }
+        ]
+    }
+]

@@ -1,0 +1,12 @@
+{
+  "id": "after_visit_summary",
+  "version": "1.0",
+  "name": "After Visit Summary",
+  "description": "Generates a brief takeaway summary for the patient with a focus on practical to-do's.",
+  "category": "administrative",
+  "default_input": "cleaned_transcript",
+  "system_prompt": "You are an expert pediatric clinician. Generate a brief After Visit Summary (AVS) intended for the patient/family. Focus on practical takeaways and clear, actionable to-do's. Use accessible, non-jargon language.",
+  "user_prompt_template": "{{input}}",
+  "created_at": "2026-04-27T23:18:11.966607+00:00",
+  "updated_at": "2026-04-27T23:18:11.966607+00:00"
+}

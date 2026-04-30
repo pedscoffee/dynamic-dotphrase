@@ -1,0 +1,76 @@
+{
+  "prompts": [
+    {
+      "id": "transcript_cleanup",
+      "name": "Transcript Cleanup",
+      "description": "Corrects speech-to-text errors, fixes medical terminology, removes filler words.",
+      "category": "preprocessing",
+      "latest_version": "1.1",
+      "versions": [
+        "1.0",
+        "1.1"
+      ]
+    },
+    {
+      "id": "assessment_plan",
+      "name": "Assessment & Plan",
+      "description": "Generates a problem-oriented Assessment and Plan from the transcript.",
+      "category": "clinical_note",
+      "latest_version": "1.0",
+      "versions": [
+        "1.0"
+      ]
+    },
+    {
+      "id": "shift_handoff",
+      "name": "Shift Handoff (SBAR)",
+      "description": "Generates an SBAR-format shift handoff summary for safe patient care transitions.",
+      "category": "administrative",
+      "latest_version": "1.0",
+      "versions": [
+        "1.0"
+      ]
+    },
+    {
+      "id": "billing_attempt",
+      "name": "Billing attempt",
+      "description": "",
+      "category": "administrative",
+      "latest_version": "1.1",
+      "versions": [
+        "1.0",
+        "1.1"
+      ]
+    },
+    {
+      "id": "hpi",
+      "name": "History of Present Illness (HPI)",
+      "description": "Generates a chronological History of Present Illness from the transcript.",
+      "category": "clinical_note",
+      "latest_version": "1.0",
+      "versions": [
+        "1.0"
+      ]
+    },
+    {
+      "id": "after_visit_summary",
+      "name": "After Visit Summary",
+      "description": "Generates a brief takeaway summary for the patient with a focus on practical to-do's.",
+      "category": "administrative",
+      "latest_version": "1.0",
+      "versions": [
+        "1.0"
+      ]
+    },
+    {
+      "id": "teaching",
+      "name": "Teaching (Clinical Pearl)",
+      "description": "Extracts a brief clinical pearl and poses a socratic follow-up question.",
+      "category": "teaching",
+      "latest_version": "1.0",
+      "versions": [
+        "1.0"
+      ]
+    }
+  ]
+}
