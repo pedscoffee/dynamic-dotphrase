@@ -1,7 +1,7 @@
-# 🩺 LocalPedsScribe
+# Dynamic DotPhrase
 
-**Privacy-first, local AI medical scribe and prompt engineering platform for clinicians.**  
-Transform patient encounters into structured clinical notes using 100% on-device AI — no cloud, no APIs, no PHI leaves your Mac.
+**Privacy-first, local AI note-writing accelerator for clinicians.**  
+Type a short clinical plan like `acute otitis media right amoxicillin` and expand it into a concise, chart-ready Assessment & Plan using a local LLM, an editable global prompt, and physician-owned dot phrases.
 
 ---
 
@@ -10,14 +10,14 @@ Transform patient encounters into structured clinical notes using 100% on-device
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-- **Local-First Privacy**: Powered by **Ollama** and **Whisper MLX**. Data never leaves your hardware.
-- **Continuous Real-Time Dictation**: Audio is captured and processed live in a background thread, streaming directly into a unified transcript box.
-- **Workflow Presets**: Construct custom pipelines of different LLM prompts (e.g., Note Cleanup -> Assessment -> Billing) and save/load them instantly as reusable presets.
-- **Rich Text Markdown**: Output cards support native Markdown rendering (bold, italics, lists) via a dual-tab "Preview" and "Edit Source" system.
-- **Prompt Library & Versioning**: Create, edit, and save multiple versions of your clinical prompts.
-- **A/B Testing**: Run side-by-side comparisons of different prompt versions to optimize output quality.
+- **Short-Plan Expansion**: Turn brief physician shorthand into a polished Assessment & Plan.
+- **Editable Global System Prompt**: The main generation behavior is controlled by a local prompt inspired by the pithy A&P examples.
+- **Saved Dot Phrases**: Add trigger words and exact phrase text. Triggered phrases are passed to the LLM as exact text to follow.
+- **Editable Output**: Review, edit, and copy generated A&P text before using it elsewhere.
+- **Optional Dictation**: Dictation remains available as a secondary input method for clinicians who prefer speaking.
+- **Local-First Privacy**: Powered by **Ollama** and optional **Whisper MLX**. Data stays on-device.
 - **Apple Silicon Optimized**: Near-instant transcription leveraging MLX hardware acceleration.
 
 ---
@@ -73,15 +73,14 @@ Access the dashboard at **http://localhost:8501**
 
 ---
 
-## 🎙️ Usage Workflow
+## Usage Workflow
 
 1. **Agree to Guidelines**: On first load, review and agree to the educational use and de-identification guidelines.
-2. **Start Dictation**: Press **🔴 Start Realtime** at the beginning of the visit. Your voice is transcribed continuously in the background.
-3. **Stop & Finalize**: Press **⏹️ Stop Realtime**. The final transcript populates immediately into the unified Transcript box.
-4. **Load a Workflow Preset**: Choose a saved pipeline of prompts (or build a new one and hit **Save New Preset**).
-5. **Run Pipeline**: Click **Run All Steps** to execute your full clinical pipeline (e.g., SOAP Note, Shift Handoffs).
-6. **Iterate & Refine**: Use the **Prompt Library** tab to tweak your instructions, or run **A/B Tests** to find the perfect phrasing.
-7. **Start New Patient**: Click the **Start New Patient** button to entirely flush the session state of all prior PHI and generated notes before the next encounter.
+2. **Compose A&P**: Type a concise plan in the main input, then click **Generate A&P**.
+3. **Review/Edit**: Use the Preview and Edit Source tabs to finalize the note text.
+4. **Tune Settings**: Edit the global system prompt or add dot phrases with trigger words and exact text.
+5. **Optional Dictation**: Use the Dictation tab to speak or paste a short plan, then send it to the composer.
+6. **Start New Note**: Clear the current input and generated output before the next note.
 
 ---
 
@@ -93,9 +92,11 @@ LocalPedsScribe/
 ├── lib/               
 │   ├── llm.py             # Ollama connectivity & generation logic
 │   ├── transcription.py   # Background threading & Whisper MLX streaming
-│   ├── prompt_library.py  # JSON-based versioned prompt storage
+│   ├── dotphrase_library.py # Local global prompt and dot phrase settings
+│   ├── prompt_library.py  # Legacy JSON-based versioned prompt storage
 │   └── workflow_library.py# Save/load pipeline preset configurations
 ├── prompts/               # Stored prompt versions (_catalog.json)
+├── user_settings/         # Created at runtime for local prompt and dot phrase JSON
 ├── workflows/             # Stored pipeline presets (_catalog.json)
 └── requirements.txt       # Python dependencies
 ```

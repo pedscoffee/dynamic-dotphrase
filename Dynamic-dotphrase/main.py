@@ -26,6 +26,7 @@ from lib.dotphrase_library import (
     ensure_settings_exist,
     load_dotphrases,
     load_system_prompt,
+    match_dotphrases,
     save_dotphrases,
     save_system_prompt,
 )
@@ -807,10 +808,11 @@ def render_prompt_library():
                     key="lib_del_prompt",
                 ):
                     delete_prompt(selected_id)
-                    st.session_state.pipeline_steps = [
-                        s for s in st.session_state.pipeline_steps
-                        if s["prompt_id"] != selected_id
-                    ]
+                    if st.session_state.pipeline_steps:
+                        st.session_state.pipeline_steps = [
+                            s for s in st.session_state.pipeline_steps
+                            if s["prompt_id"] != selected_id
+                        ]
                     st.success(f"Deleted {info['name']}")
                     st.rerun()
 
@@ -1213,7 +1215,7 @@ def render_ab_test(ollama_ok: bool, selected_model: str):
 
 
 def render_onboarding():
-    st.title("⚕️ Welcome to LocalPedsScribe")
+    st.title("Welcome to Dynamic DotPhrase")
     st.markdown("### Beta Educational Use Only")
     st.warning("This tool is in beta development for **educational use only** and is **not intended for patient care**.")
     st.markdown('''
@@ -1222,32 +1224,257 @@ By using this tool, you agree to:
 - [Review the HHS Safe Harbor Guidelines](https://www.hhs.gov/hipaa/for-professionals/special-topics/de-identification/index.html).
 
 #### How it works:
-1. **Record Audio**: Use the real-time dictation to capture your thoughts securely (no audio is saved).
-2. **Pipeline Configuration**: Construct workflows of different LLM prompts (e.g., Note Cleanup, Assessment & Plan) and save them as presets.
-3. **Run Prompts**: Generate your content dynamically and securely right on your Apple Silicon device.
+1. **Write short clinical intent**: Type shorthand like `acute otitis media right amoxicillin`.
+2. **Generate A&P**: The local LLM expands it into concise chart-ready assessment and plan language.
+3. **Tune your defaults**: Edit the global system prompt and saved dot phrases locally.
     ''')
     if st.button("I Agree", type="primary"):
         st.session_state.agreed_to_disclaimer = True
         st.rerun()
 
+
+def render_compose(ollama_ok: bool, selected_model: str):
+    """Primary dynamic dot phrase composer."""
+    st.markdown(
+        '<div class="section-label">Short Plan</div>',
+        unsafe_allow_html=True,
+    )
+    short_input = st.text_area(
+        "Short plan",
+        value=st.session_state.short_plan_input,
+        height=150,
+        placeholder="acute otitis media right amoxicillin\nviral URI supportive care declined COVID test",
+        label_visibility="collapsed",
+    )
+    st.session_state.short_plan_input = short_input
+
+    dotphrases = load_dotphrases()
+    matched = [
+        p.get("name", "Untitled")
+        for p in match_dotphrases(short_input, dotphrases)
+    ]
+    if short_input.strip() and matched:
+        st.caption("Matched dot phrases: " + ", ".join(matched))
+    elif short_input.strip():
+        st.caption("No exact trigger matched. The model will use the global prompt examples.")
+
+    col_generate, col_clear, _ = st.columns([2, 2, 6])
+    with col_generate:
+        st.markdown('<div class="btn-success">', unsafe_allow_html=True)
+        if st.button(
+            "Generate A&P",
+            disabled=not (short_input.strip() and ollama_ok),
+            use_container_width=True,
+            key="generate_plan",
+        ):
+            st.session_state.trigger_plan_generate = True
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_clear:
+        st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
+        if st.button("Clear", use_container_width=True, key="clear_plan"):
+            st.session_state.short_plan_input = ""
+            st.session_state.generated_plan = ""
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.trigger_plan_generate:
+        st.session_state.trigger_plan_generate = False
+        if short_input.strip() and ollama_ok:
+            system_prompt = load_system_prompt()
+            system_msg, user_msg = build_generation_messages(
+                short_input,
+                system_prompt,
+                dotphrases,
+            )
+            with st.spinner("Expanding A&P..."):
+                stream = stream_with_prompt(system_msg, user_msg, selected_model)
+                st.session_state.generated_plan = st.write_stream(stream)
+            st.rerun()
+
+    st.markdown("---")
+    st.markdown(
+        '<div class="section-label">Generated A&P</div>',
+        unsafe_allow_html=True,
+    )
+    if st.session_state.generated_plan:
+        tab_preview, tab_edit = st.tabs(["Preview", "Edit Source"])
+        with tab_edit:
+            edited = st.text_area(
+                "Generated output",
+                value=st.session_state.generated_plan,
+                height=360,
+                label_visibility="collapsed",
+            )
+            if edited != st.session_state.generated_plan:
+                st.session_state.generated_plan = edited
+        with tab_preview:
+            st.markdown(st.session_state.generated_plan)
+
+        c1, c2, _ = st.columns([1, 1, 6])
+        with c1:
+            copy_button(st.session_state.generated_plan, label="Copy", key="copy_generated_plan")
+        with c2:
+            st.markdown('<div class="btn-primary">', unsafe_allow_html=True)
+            if st.button(
+                "Re-run",
+                disabled=not (short_input.strip() and ollama_ok),
+                use_container_width=True,
+                key="rerun_plan",
+            ):
+                st.session_state.trigger_plan_generate = True
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.caption("Generated output will appear here.")
+
+
+def render_dotphrase_settings():
+    """Editable global prompt and saved phrase library."""
+    st.markdown(
+        '<div class="section-label">Global System Prompt</div>',
+        unsafe_allow_html=True,
+    )
+    system_prompt = st.text_area(
+        "Global system prompt",
+        value=load_system_prompt(),
+        height=360,
+        label_visibility="collapsed",
+        key="settings_system_prompt",
+    )
+    if st.button("Save System Prompt", use_container_width=True):
+        save_system_prompt(system_prompt)
+        st.success("Saved system prompt.")
+
+    st.markdown("---")
+    st.markdown(
+        '<div class="section-label">Saved Dot Phrases</div>',
+        unsafe_allow_html=True,
+    )
+
+    dotphrases = load_dotphrases()
+    changed = False
+    delete_idx = None
+
+    for idx, phrase in enumerate(dotphrases):
+        with st.expander(phrase.get("name", "Untitled"), expanded=False):
+            phrase["enabled"] = st.checkbox(
+                "Enabled",
+                value=phrase.get("enabled", True),
+                key=f"phrase_enabled_{idx}",
+            )
+            phrase["name"] = st.text_input(
+                "Name",
+                value=phrase.get("name", ""),
+                key=f"phrase_name_{idx}",
+            )
+            triggers = ", ".join(phrase.get("triggers", []))
+            trigger_text = st.text_input(
+                "Triggers, comma-separated",
+                value=triggers,
+                key=f"phrase_triggers_{idx}",
+            )
+            phrase["triggers"] = [
+                t.strip() for t in trigger_text.split(",") if t.strip()
+            ]
+            phrase["text"] = st.text_area(
+                "Exact text",
+                value=phrase.get("text", ""),
+                height=130,
+                key=f"phrase_text_{idx}",
+            )
+            if st.button("Delete Phrase", key=f"delete_phrase_{idx}"):
+                delete_idx = idx
+            changed = True
+
+    if delete_idx is not None:
+        dotphrases.pop(delete_idx)
+        save_dotphrases(dotphrases)
+        st.success("Deleted dot phrase.")
+        st.rerun()
+
+    with st.expander("Add New Dot Phrase", expanded=not dotphrases):
+        new_name = st.text_input("Name", key="new_phrase_name")
+        new_triggers = st.text_input("Triggers, comma-separated", key="new_phrase_triggers")
+        new_text = st.text_area("Exact text", height=130, key="new_phrase_text")
+        if st.button("Add Dot Phrase", use_container_width=True):
+            if new_name.strip() and new_text.strip():
+                dotphrases.append({
+                    "id": _slugify(new_name),
+                    "name": new_name.strip(),
+                    "triggers": [t.strip() for t in new_triggers.split(",") if t.strip()],
+                    "text": new_text.strip(),
+                    "enabled": True,
+                })
+                save_dotphrases(dotphrases)
+                st.success("Added dot phrase.")
+                st.rerun()
+            else:
+                st.warning("Name and exact text are required.")
+
+    if changed and st.button("Save Dot Phrase Library", use_container_width=True):
+        save_dotphrases(dotphrases)
+        st.success("Saved dot phrases.")
+
+
+def render_dictation_input():
+    """Secondary dictation workflow that can feed the short-plan composer."""
+    st.markdown(
+        '<div class="section-label">Dictation Input</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Optional: dictate or paste your plan, then send it to the composer.")
+    render_realtime_transcription()
+
+    display_text = (
+        st.session_state.cleaned_transcript
+        if st.session_state.cleaned_transcript.strip()
+        else st.session_state.raw_transcript
+    )
+    dictated_text = st.text_area(
+        "Dictated plan",
+        value=display_text,
+        height=240,
+        placeholder="Dictated shorthand appears here...",
+        label_visibility="collapsed",
+    )
+    if display_text != dictated_text:
+        st.session_state.raw_transcript = dictated_text
+        st.session_state.cleaned_transcript = ""
+
+    col_send, col_clear, _ = st.columns([2, 2, 6])
+    with col_send:
+        if st.button(
+            "Use As Short Plan",
+            disabled=not dictated_text.strip(),
+            use_container_width=True,
+        ):
+            st.session_state.short_plan_input = dictated_text
+            st.rerun()
+    with col_clear:
+        if st.button("Clear Dictation", use_container_width=True):
+            st.session_state.raw_transcript = ""
+            st.session_state.cleaned_transcript = ""
+            st.rerun()
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     st.set_page_config(
-        page_title="PPES — Physician Prompt Engineering Scribe",
+        page_title="Dynamic DotPhrase",
         page_icon="⚕️",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
     ensure_library_exists()
+    ensure_settings_exist()
     init_state()
     
     if not st.session_state.agreed_to_disclaimer:
         render_onboarding()
         return
-
-    init_pipeline()
 
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
@@ -1315,17 +1542,14 @@ def main():
     with st.sidebar:
         selected_model = render_sidebar(ollama_ok, available_models)
 
-    # ── Pending executions (before UI renders) ───────────────────────
-    handle_executions(selected_model, ollama_ok)
-
     # ── Header ───────────────────────────────────────────────────────
     st.markdown(
         """
         <div class="ppes-header">
             <div class="logo">⚕️</div>
             <div>
-                <h1>Physician Prompt Engineering Scribe</h1>
-                <div class="subtitle">Privacy-first · 100% local · Customizable prompt pipelines</div>
+                <h1>Dynamic DotPhrase</h1>
+                <div class="subtitle">Local short-plan expansion · physician-owned prompt and phrase library</div>
             </div>
         </div>
         """,
@@ -1335,79 +1559,32 @@ def main():
     col_btn1, _ = st.columns([2, 8])
     with col_btn1:
         st.markdown('<div class="btn-danger">', unsafe_allow_html=True)
-        if st.button("Start New Patient", use_container_width=True):
+        if st.button("Start New Note", use_container_width=True):
             st.session_state.raw_transcript = ""
             st.session_state.cleaned_transcript = ""
+            st.session_state.short_plan_input = ""
+            st.session_state.generated_plan = ""
             st.session_state.step_outputs = {}
             st.session_state["unified_transcript_area"] = ""
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-
-    # ── Audio input ──────────────────────────────────────────────────
-    st.markdown(
-        '<div class="section-label">Record Audio</div>',
-        unsafe_allow_html=True,
-    )
-    st.caption(
-        "Click Start Realtime to begin continuous dictation. Audio is discarded immediately for privacy."
-    )
-    
-    render_realtime_transcription()
-
-    # ── Transcript ───────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown(
-        '<div class="section-label">Transcript</div>',
-        unsafe_allow_html=True,
+    compose_tab, settings_tab, dictation_tab, advanced_tab = st.tabs(
+        ["Compose A&P", "Settings", "Dictation", "Legacy Prompt Tools"]
     )
-    
-    # Show unified transcript area
-    display_text = st.session_state.cleaned_transcript if st.session_state.cleaned_transcript.strip() else st.session_state.raw_transcript
-    
-    new_text = st.text_area(
-        "Transcript",
-        value=display_text,
-        height=280,
-        placeholder=(
-            "Transcript appears here after dictation…\n"
-            "You can also paste or edit text directly."
-        ),
-        label_visibility="collapsed",
-        key="unified_transcript_area",
-    )
-    
-    # Update underlying state based on user edits
-    if display_text != new_text:
-        if st.session_state.cleaned_transcript.strip():
-            st.session_state.cleaned_transcript = new_text
-        else:
-            st.session_state.raw_transcript = new_text
 
-    # Manual cleanup trigger
-    cleanup_steps = [
-        s for s in st.session_state.pipeline_steps
-        if get_prompt_info(s["prompt_id"])
-        and get_prompt_info(s["prompt_id"])["category"] == "preprocessing"
-    ]
-    if cleanup_steps and st.session_state.raw_transcript.strip():
-        st.markdown('<div class="btn-outline" style="max-width: 200px; margin-top: 10px;">', unsafe_allow_html=True)
-        if st.button("Run Cleanup", key="run_cleanup", use_container_width=True):
-            st.session_state.trigger_step = cleanup_steps[0]["prompt_id"]
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    with compose_tab:
+        render_compose(ollama_ok, selected_model)
 
-    # ── Output workspace ─────────────────────────────────────────────
-    st.markdown("---")
-    work_tab, ab_tab, lib_tab = st.tabs(["Workflow", "A/B Test", "Prompt Library"])
+    with settings_tab:
+        render_dotphrase_settings()
 
-    with work_tab:
-        render_workflow(ollama_ok, selected_model)
+    with dictation_tab:
+        render_dictation_input()
 
-    with ab_tab:
-        render_ab_test(ollama_ok, selected_model)
-
-    with lib_tab:
+    with advanced_tab:
+        st.caption("Original prompt library tools are kept here for reference and experimentation.")
         render_prompt_library()
 
     # ── Footer ───────────────────────────────────────────────────────
@@ -1418,12 +1595,11 @@ def main():
             "then refresh this page.",
             icon="🔴",
         )
-    if not st.session_state.raw_transcript.strip():
+    if not st.session_state.short_plan_input.strip():
         st.info(
-            "**How to use:** Record audio or paste a transcript above, then use the "
-            "Workflow tab to configure your pipeline and generate outputs. "
-            "Use the **Prompt Library** tab to create and edit prompts, or the "
-            "**A/B Test** tab to compare prompt versions.",
+            "**How to use:** Type a concise plan such as `acute otitis media right "
+            "amoxicillin`, generate the A&P, then edit and copy the result. Use "
+            "**Settings** to tune the global prompt and phrase triggers.",
             icon="💡",
         )
 

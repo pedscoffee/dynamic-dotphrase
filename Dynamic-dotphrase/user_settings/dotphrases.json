@@ -1,0 +1,31 @@
+{
+  "dotphrases": [
+    {
+      "id": "aom",
+      "name": "Acute Otitis Media",
+      "triggers": [
+        "aom",
+        "acute otitis media",
+        "ear infection",
+        "otitis"
+      ],
+      "text": "*Risk of untreated otitis media includes persistent pain and fever, hearing loss, and mastoiditis.*",
+      "enabled": true
+    },
+    {
+      "id": "illness_return_precautions",
+      "name": "Illness Return Precautions",
+      "triggers": [
+        "viral",
+        "uri",
+        "fever",
+        "cough",
+        "illness",
+        "sore throat"
+      ],
+      "text": "*Recommended supportive care with OTC medications as needed. Return precautions given including increasing pain, worsening fever, dehydration, new symptoms, prolonged symptoms, worsening symptoms, and other concerns. Caregiver expressed understanding and agreement with treatment plan.*",
+      "enabled": true
+    }
+  ],
+  "updated_at": "2026-05-01T10:20:37.308000+00:00"
+}
